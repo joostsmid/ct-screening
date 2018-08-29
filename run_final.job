@@ -1,0 +1,39 @@
+#! /bin/bash
+#SBATCH --mail-user=joost.smid@ispm.unibe.ch
+#SBATCH --mail-type=end,fail
+#SBATCH --time=95:00:00
+#SBATCH --mem-per-cpu=4G
+#SBATCH --array=1-140
+#SBATCH --output="error/slurm-%A.out"
+
+DAT="/gpfs/homefs/ispm/smid/genericSTI"
+SCRIPT="/gpfs/homefs/ispm/smid/genericSTI/scripts_github" # file with scripts
+RES="/gpfs/homefs/ispm/smid/genericSTI/results/${SLURM_ARRAY_JOB_ID}" # file with results
+TMP="/gpfs/homefs/ispm/smid/${SLURM_JOB_ID}" # temporary file
+DATA="trace${SLURM_ARRAY_TASK_ID}.RData"
+OUT="genericSTI${SLURM_ARRAY_TASK_ID}.Rout"
+# 1 - creation du dossier scratch et copie des fichiers
+mkdir -p $TMP
+cp -R $SCRIPT/* $TMP/.
+cd $TMP
+
+# Parameters
+
+# Sweeping parameters.txt
+N=${SLURM_ARRAY_TASK_ID}
+echo "$N"
+rx=`head -n ${N} parameters.txt | tail -n 1 | cut -d' ' -f1`
+ry=`head -n ${N} parameters.txt | tail -n 1 | cut -d' ' -f2`
+# Display
+echo "Job array item $N: rx=$rx, ry=$ry"
+echo "---------------------------------"
+
+# Run
+R CMD BATCH --no-save --no-restore "--args $rx $ry" run_multicore.R
+
+# 3 - copie des resultats et nettoyage
+mkdir -p $RES
+cp ./results/trace.RData $RES/$DATA
+cp ./results/run_multicore.Rout $RES/$OUT
+rm -rf $TMP
+echo "Job is done."
