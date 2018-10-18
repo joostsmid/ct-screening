@@ -234,6 +234,11 @@ initvec.to.tensor.cpp <- function(init.cpp, par.cond = list(age_classes, nmb_act
   ### gender
   D <- to.tensor(rep(0, nElements), dims  = dimnames1)
   
+  ##############################################################################################################################
+  ### Define a vector of recovereds vaccinated, structured by age, sex, activity class
+  ### gender
+  Inc <- to.tensor(rep(0, nElements), dims  = dimnames1)
+  
   
   ###################### Fill up the tensors #################################################################################
   tensor_entry_numbers = sex_length * par.cond$nmb_act_classes * nmb_age_classes;
@@ -265,6 +270,7 @@ initvec.to.tensor.cpp <- function(init.cpp, par.cond = list(age_classes, nmb_act
         I_A2 [g,j,a] = as.numeric(init.cpp[counter + 4*tensor_entry_numbers]);
         I_S2 [g,j,a] = as.numeric(init.cpp[counter + 5*tensor_entry_numbers]);
         D [g,j,a] = as.numeric(init.cpp[counter + 6*tensor_entry_numbers]);
+        Inc [g,j,a] = as.numeric(init.cpp[counter + 7*tensor_entry_numbers]);
         counter = counter + 1;
       }
     }
@@ -275,7 +281,7 @@ initvec.to.tensor.cpp <- function(init.cpp, par.cond = list(age_classes, nmb_act
     
     cat("Conversion into tensors finalized", '\n')
     
-    if(counter - 1 + 6*tensor_entry_numbers != length(init.cpp)){
+    if(counter - 1 + 7*tensor_entry_numbers != length(init.cpp)){
       
       cat("last entry of init.cpp used: ", counter -1, '\n')
       cat("length of cpp-based vector to be converted: ", length(init.cpp), '\n')
@@ -284,6 +290,6 @@ initvec.to.tensor.cpp <- function(init.cpp, par.cond = list(age_classes, nmb_act
     
   }
   
-  return(list(U = U, S = S, I_A = I_A, I_S = I_S, R = R, I_A2 = I_A2, I_S2 = I_S2, D = D))
+  return(list(U = U, S = S, I_A = I_A, I_S = I_S, R = R, I_A2 = I_A2, I_S2 = I_S2, D = D, Inc=Inc))
   
 }

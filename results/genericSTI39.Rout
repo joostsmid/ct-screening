@@ -1,0 +1,466 @@
+
+R version 3.4.4 (2018-03-15) -- "Someone to Lean On"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # Args from array in bash
+> args=(commandArgs(TRUE))
+> args=as.numeric(unlist(args))
+> 
+> # different start values of the parameters
+> model.run=1:5
+> 
+> # different model types...
+> model.type=list(c("bet_","eps_","kap_","eta1_","eta2_","fsyM_","fsyF_","gam_","omA_","omS_","tre_"),
++                 c("bet_","eps_","eta1_","eta2_","fsyM_","fsyF_","gam_","omA_","omS_","tre_"),
++                 c("bet_","eps_","kap_","eta1_","fsyM_","fsyF_","gam_","omA_","omS_","tre_"),
++                 c("bet_","eps_","eta1_","fsyM_","fsyF_","gam_","omA_","omS_","tre_"))
+> 
+> # ...with different initial values to start the mcmc chains with (per mcmc chain we will run a slight variation of these inital values)
+> model.type.inittheta <-
++   #mcmc_reinf_bl
++   list(c(beta = .85,epsilon=0.8,gamma=365/433,kappa=.7,omega.A=0.921*(1-0.194),omega.S=0.921*(1-0.194),fsymp.M=0.1,fsymp.F=0.1,treat=365/33,eta1 = 2.5,eta2 = 0,r=200),
++        c(beta = 0.64,epsilon=0.8,gamma=365/433,kappa=0,omega.A=0.921*(1-0.194),omega.S=0.921*(1-0.194),fsymp.M=0.1,fsymp.F=0.1,treat=365/33,eta1 = 5.9,eta2 = 0.06,r=200),
++        c(beta = .89,epsilon=0.8,gamma=365/433,kappa=.8,omega.A=0.921*(1-0.194),omega.S=0.921*(1-0.194),fsymp.M=0.1,fsymp.F=0.1,treat=365/33,eta1 = 2.5,eta2 = -2,r=200),
++        c(beta = 0.64, epsilon=0.8,gamma=365/433,kappa=0,omega.A=0.921*(1-0.194),omega.S=0.921*(1-0.194),fsymp.M=0.1,fsymp.F=0.1,treat=365/33,eta1 = 3.5,eta2 = -2,r=200))
+> 
+> # choose the data file (maximum/minimum/midpoint data, as in Chandra et al, Eurosurveillance 2016)
+> testdatafile <- c("testdata_mean.txt","testdata_min.txt","testdata_max.txt")[args[1]]
+> diagdatafile <- c("diagnosisdata_mean.txt","diagnosisdata_min.txt","diagnosisdata_max.txt")[args[1]]
+> 
+> # seed for random number generator per model type, model run
+> seed.rnm.all <- 1:(length(model.run)*length(model.type)*3)
+> 
+> # run one model.type..
+> testmodel <- model.type[[args[2]]]
+> my.init.theta <- model.type.inittheta[[args[2]]]
+> # ..starting with a slight variation of initial value to start the mcmc chains with
+> nrun <- model.run[args[3]]
+> seed.rnm <- seed.rnm.all[(args[1]-1)*length(model.run)*4+(args[2]-1)*length(model.run)+args[3]]
+> print(seed.rnm)
+[1] 39
+> print(args[1])
+[1] 2
+> print(args[2])
+[1] 4
+> print(args[3])
+[1] 4
+> 
+> path_in <- "modelfiles"
+> path_data <- "data"
+> path_results <- "results"
+> 
+> # number of mcmc iterations
+> n.mcmc.iterations <- 20000
+> 
+> # define basic parameters
+> sex = c("M","F")
+> age.classes <- c(15,18,20,25,35,45)
+> nJ <- 2
+> 
+> # Parameters of full (saturated) model
+> fullmodel<- c("bet_","eps_","gam_","kap_","omA_","omS_","fsyM_","fsyF_","tre_","eta1_","eta2_","r_")
+> 
+> source(file.path(path_in, "define_mcmc.R")) #define model, load mcmc functions and epidata
+Loading required package: tensorA
+
+Attaching package: ‘tensorA’
+
+The following object is masked from ‘package:base’:
+
+    norm
+
+Loading required package: abind
+Loading required package: deSolve
+Loading required package: compiler
+Loading required package: sn
+Loading required package: stats4
+
+Attaching package: ‘sn’
+
+The following object is masked from ‘package:stats’:
+
+    sd
+
+Loading required package: spatial
+Loading required package: fields
+Loading required package: spam
+Loading required package: dotCall64
+Loading required package: grid
+Spam version 2.1-2 (2017-12-21) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following object is masked from ‘package:stats4’:
+
+    mle
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: maps
+See www.image.ucar.edu/~nychka/Fields for
+ a vignette and other supplements. 
+Loading required package: MASS
+Loading required package: fitdistrplus
+Loading required package: survival
+Loading required package: devtools
+Loading required package: Hmisc
+Loading required package: lattice
+Loading required package: Formula
+Loading required package: ggplot2
+
+Attaching package: ‘Hmisc’
+
+The following object is masked from ‘package:fields’:
+
+    describe
+
+The following objects are masked from ‘package:base’:
+
+    format.pval, units
+
+Loading required package: binom
+Loading required package: XLConnect
+Loading required package: XLConnectJars
+Rjava.init.warning: lost 108056 bytes of stack after JVM initialization.
+XLConnect 0.2-15 by Mirai Solutions GmbH [aut],
+  Martin Studer [cre],
+  The Apache Software Foundation [ctb, cph] (Apache POI),
+  Graph Builder [ctb, cph] (Curvesapi Java library)
+http://www.mirai-solutions.com
+https://github.com/miraisolutions/xlconnect
+Loading required package: foreign
+Loading required package: reshape2
+Loading required package: scales
+Loading required package: RColorBrewer
+Loading required package: sp
+Loading required package: weights
+Loading required package: gdata
+gdata: read.xls support for 'XLS' (Excel 97-2004) files ENABLED.
+
+gdata: Unable to load perl libaries needed by read.xls()
+gdata: to support 'XLSX' (Excel 2007+) files.
+
+gdata: Run the function 'installXLSXsupport()'
+gdata: to automatically download and install the perl
+gdata: libaries needed to support Excel XLS and XLSX formats.
+
+Attaching package: ‘gdata’
+
+The following object is masked from ‘package:stats4’:
+
+    nobs
+
+The following object is masked from ‘package:stats’:
+
+    nobs
+
+The following object is masked from ‘package:utils’:
+
+    object.size
+
+The following object is masked from ‘package:base’:
+
+    startsWith
+
+Loading required package: mice
+Loading required package: fda
+Loading required package: splines
+Loading required package: Matrix
+
+Attaching package: ‘fda’
+
+The following object is masked from ‘package:graphics’:
+
+    matplot
+
+Loading required package: bbmle
+Loading required package: dplyr
+
+Attaching package: ‘dplyr’
+
+The following object is masked from ‘package:bbmle’:
+
+    slice
+
+The following objects are masked from ‘package:gdata’:
+
+    combine, first, last
+
+The following objects are masked from ‘package:Hmisc’:
+
+    src, summarize
+
+The following object is masked from ‘package:MASS’:
+
+    select
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: plyr
+------------------------------------------------------------------------------
+You have loaded plyr after dplyr - this is likely to cause problems.
+If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+library(plyr); library(dplyr)
+------------------------------------------------------------------------------
+
+Attaching package: ‘plyr’
+
+The following objects are masked from ‘package:dplyr’:
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise,
+    summarize
+
+The following objects are masked from ‘package:Hmisc’:
+
+    is.discrete, summarize
+
+The following object is masked from ‘package:maps’:
+
+    ozone
+
+Loading required package: coda
+Loading required package: tmvtnorm
+Loading required package: mvtnorm
+Loading required package: gmm
+Loading required package: sandwich
+Loading required package: fitR
+Loading required package: adaptivetau
+g++  -I/software.el7/software/R/3.4.4-foss-2018a-X11-20180131/lib64/R/include -DNDEBUG   -I/software.el7/software/OpenBLAS/0.2.20-GCC-6.4.0-2.28/include -I/software.el7/software/ScaLAPACK/2.0.2-gompi-2018a-OpenBLAS-0.2.20/include -I/software.el7/software/X11/20180131-GCCcore-6.4.0/include -I/software.el7/software/Mesa/17.3.6-foss-2018a/include -I/software.el7/software/libGLU/9.0.0-foss-2018a/include -I/software.el7/software/cairo/1.14.12-GCCcore-6.4.0/include -I/software.el7/software/libreadline/7.0-GCCcore-6.4.0/include -I/software.el7/software/ncurses/6.0-GCCcore-6.4.0/include -I/software.el7/software/bzip2/1.0.6-GCCcore-6.4.0/include -I/software.el7/software/XZ/5.2.3-GCCcore-6.4.0/include -I/software.el7/software/zlib/1.2.11-GCCcore-6.4.0/include -I/software.el7/software/SQLite/3.21.0-GCCcore-6.4.0/include -I/software.el7/software/PCRE/8.41-GCCcore-6.4.0/include -I/software.el7/software/libpng/1.6.34-GCCcore-6.4.0/include -I/software.el7/software/libjpeg-turbo/1.5.3-GCCcore-6.4.0/include -I/software.el7/software/LibTIFF/4.0.9-GCCcore-6.4.0/include -I/software.el7/software/Java/1.8.0_162/include -I/software.el7/software/Tcl/8.6.8-GCCcore-6.4.0/include -I/software.el7/software/Tk/8.6.8-foss-2018a/include -I/software.el7/software/cURL/7.58.0-GCCcore-6.4.0/include -I/software.el7/software/libxml2/2.9.7-GCCcore-6.4.0/include -I/software.el7/software/GDAL/2.2.3-foss-2018a-Python-3.6.4/include -I/software.el7/software/PROJ/5.0.0-foss-2018a/include -I/software.el7/software/GMP/6.1.2-GCCcore-6.4.0/include -I/software.el7/software/NLopt/2.4.2-foss-2018a/include -I/software.el7/software/FFTW/3.3.7-gompi-2018a/include -I/software.el7/software/libsndfile/1.0.28-GCCcore-6.4.0/include -I/software.el7/software/ICU/61.1-GCCcore-6.4.0/include   -fpic  -O2 -ftree-vectorize -march=native -fno-math-errno  -c STIreduced.cpp -o STIreduced.o
+g++ -shared -L/software.el7/software/R/3.4.4-foss-2018a-X11-20180131/lib64/R/lib -L/software.el7/software/GCCcore/6.4.0/lib64 -L/software.el7/software/GCCcore/6.4.0/lib -L/software.el7/software/OpenBLAS/0.2.20-GCC-6.4.0-2.28/lib -L/software.el7/software/ScaLAPACK/2.0.2-gompi-2018a-OpenBLAS-0.2.20/lib -L/software.el7/software/X11/20180131-GCCcore-6.4.0/lib -L/software.el7/software/Mesa/17.3.6-foss-2018a/lib -L/software.el7/software/libGLU/9.0.0-foss-2018a/lib -L/software.el7/software/cairo/1.14.12-GCCcore-6.4.0/lib -L/software.el7/software/libreadline/7.0-GCCcore-6.4.0/lib -L/software.el7/software/ncurses/6.0-GCCcore-6.4.0/lib -L/software.el7/software/bzip2/1.0.6-GCCcore-6.4.0/lib -L/software.el7/software/XZ/5.2.3-GCCcore-6.4.0/lib -L/software.el7/software/zlib/1.2.11-GCCcore-6.4.0/lib -L/software.el7/software/SQLite/3.21.0-GCCcore-6.4.0/lib -L/software.el7/software/PCRE/8.41-GCCcore-6.4.0/lib -L/software.el7/software/libpng/1.6.34-GCCcore-6.4.0/lib -L/software.el7/software/libjpeg-turbo/1.5.3-GCCcore-6.4.0/lib -L/software.el7/software/LibTIFF/4.0.9-GCCcore-6.4.0/lib -L/software.el7/software/Java/1.8.0_162/lib -L/software.el7/software/Tcl/8.6.8-GCCcore-6.4.0/lib -L/software.el7/software/Tk/8.6.8-foss-2018a/lib -L/software.el7/software/cURL/7.58.0-GCCcore-6.4.0/lib -L/software.el7/software/libxml2/2.9.7-GCCcore-6.4.0/lib -L/software.el7/software/GDAL/2.2.3-foss-2018a-Python-3.6.4/lib -L/software.el7/software/PROJ/5.0.0-foss-2018a/lib -L/software.el7/software/GMP/6.1.2-GCCcore-6.4.0/lib -L/software.el7/software/NLopt/2.4.2-foss-2018a/lib -L/software.el7/software/FFTW/3.3.7-gompi-2018a/lib -L/software.el7/software/libsndfile/1.0.28-GCCcore-6.4.0/lib -L/software.el7/software/ICU/61.1-GCCcore-6.4.0/lib -o STIreduced.so STIreduced.o -L/software.el7/software/R/3.4.4-foss-2018a-X11-20180131/lib64/R/lib -lR
+> source(file.path(path_in, "run_mcmc.R")) # run model
+[1] 39
+Init: beta = 0.64 | epsilon = 0.79 | gamma = 0.84 | omega.A = 0.74 | omega.S = 0.75 | fsymp.M = 0.10 | fsymp.F = 0.10 | treat = 10.99 | eta1 = 3.53, target: -760.769382337306
+Iteration: 200/20000, acceptance rate: 0.050, state: beta = 0.59 | epsilon = 0.85 | gamma = 0.91 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.76 | fsymp.M = 0.09 | fsymp.F = 0.12 | treat = 10.47 | eta1 = 2.50 | eta2 = -2.00 | r = 200.00
+, logdensity: -699.710207047322
+Iteration: 400/20000, acceptance rate: 0.050, state: beta = 0.56 | epsilon = 0.86 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.76 | fsymp.M = 0.11 | fsymp.F = 0.08 | treat = 12.11 | eta1 = 2.46 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.890522630897
+Iteration: 600/20000, acceptance rate: 0.038, state: beta = 0.56 | epsilon = 0.95 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.71 | fsymp.M = 0.12 | fsymp.F = 0.11 | treat = 12.18 | eta1 = 2.24 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.502110962809
+Iteration: 800/20000, acceptance rate: 0.039, state: beta = 0.57 | epsilon = 0.73 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.14 | treat = 9.76 | eta1 = 1.70 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.496452457005
+Iteration: 1000/20000, acceptance rate: 0.036, state: beta = 0.60 | epsilon = 0.61 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.73 | fsymp.M = 0.14 | fsymp.F = 0.11 | treat = 12.78 | eta1 = 1.82 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.108531761752
+Iteration: 1200/20000, acceptance rate: 0.033, state: beta = 0.58 | epsilon = 0.69 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.73 | fsymp.M = 0.12 | fsymp.F = 0.14 | treat = 12.01 | eta1 = 1.80 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.021163018534
+Iteration: 1400/20000, acceptance rate: 0.029, state: beta = 0.59 | epsilon = 0.71 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.76 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 12.86 | eta1 = 1.95 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.671399876392
+Iteration: 1600/20000, acceptance rate: 0.029, state: beta = 0.63 | epsilon = 0.57 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.11 | fsymp.F = 0.10 | treat = 12.42 | eta1 = 2.36 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.110005274948
+Iteration: 1800/20000, acceptance rate: 0.029, state: beta = 0.59 | epsilon = 0.74 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.72 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 10.02 | eta1 = 1.59 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.723257160384
+Iteration: 2000/20000, acceptance rate: 0.028, state: beta = 0.63 | epsilon = 0.50 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.17 | treat = 9.23 | eta1 = 1.90 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.673907041901
+Iteration: 2200/20000, acceptance rate: 0.029, state: beta = 0.58 | epsilon = 0.61 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.09 | treat = 9.19 | eta1 = 2.53 | eta2 = -2.00 | r = 200.00
+, logdensity: -698.986728107363
+Iteration: 2400/20000, acceptance rate: 0.030, state: beta = 0.58 | epsilon = 0.71 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.76 | fsymp.M = 0.12 | fsymp.F = 0.12 | treat = 10.94 | eta1 = 1.69 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.485437328788
+Iteration: 2600/20000, acceptance rate: 0.030, state: beta = 0.60 | epsilon = 0.65 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.75 | fsymp.M = 0.14 | fsymp.F = 0.13 | treat = 13.91 | eta1 = 1.54 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.626808582736
+Iteration: 2800/20000, acceptance rate: 0.031, state: beta = 0.62 | epsilon = 0.56 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.74 | fsymp.M = 0.09 | fsymp.F = 0.12 | treat = 9.38 | eta1 = 2.11 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.527475389375
+Iteration: 3000/20000, acceptance rate: 0.030, state: beta = 0.60 | epsilon = 0.62 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.09 | fsymp.F = 0.08 | treat = 8.45 | eta1 = 2.40 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.837600410885
+Iteration: 3200/20000, acceptance rate: 0.029, state: beta = 0.64 | epsilon = 0.54 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.75 | fsymp.M = 0.10 | fsymp.F = 0.10 | treat = 9.96 | eta1 = 1.98 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.536946321925
+Iteration: 3400/20000, acceptance rate: 0.028, state: beta = 0.65 | epsilon = 0.47 | gamma = 0.88 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.75 | fsymp.M = 0.14 | fsymp.F = 0.17 | treat = 10.82 | eta1 = 2.00 | eta2 = -2.00 | r = 200.00
+, logdensity: -698.685203231495
+Iteration: 3600/20000, acceptance rate: 0.027, state: beta = 0.68 | epsilon = 0.28 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.15 | treat = 10.79 | eta1 = 1.40 | eta2 = -2.00 | r = 200.00
+, logdensity: -698.819830680183
+Iteration: 3800/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.72 | gamma = 0.81 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.76 | fsymp.M = 0.08 | fsymp.F = 0.14 | treat = 9.65 | eta1 = 1.95 | eta2 = -2.00 | r = 200.00
+, logdensity: -699.345026674712
+Iteration: 4000/20000, acceptance rate: 0.028, state: beta = 0.62 | epsilon = 0.50 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.77 | fsymp.M = 0.10 | fsymp.F = 0.14 | treat = 9.79 | eta1 = 1.81 | eta2 = -2.00 | r = 200.00
+, logdensity: -698.393449411696
+Iteration: 4200/20000, acceptance rate: 0.028, state: beta = 0.61 | epsilon = 0.51 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.75 | fsymp.M = 0.13 | fsymp.F = 0.15 | treat = 11.99 | eta1 = 1.53 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.514062899075
+Iteration: 4400/20000, acceptance rate: 0.029, state: beta = 0.57 | epsilon = 0.78 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.72 | fsymp.M = 0.10 | fsymp.F = 0.11 | treat = 11.90 | eta1 = 2.04 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.87201577336
+Iteration: 4600/20000, acceptance rate: 0.029, state: beta = 0.56 | epsilon = 0.78 | gamma = 0.80 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.11 | treat = 10.53 | eta1 = 1.68 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.010735847038
+Iteration: 4800/20000, acceptance rate: 0.028, state: beta = 0.59 | epsilon = 0.70 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.11 | fsymp.F = 0.14 | treat = 11.50 | eta1 = 1.77 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.03256359909
+Iteration: 5000/20000, acceptance rate: 0.028, state: beta = 0.57 | epsilon = 0.79 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 11.24 | eta1 = 1.90 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.543533889987
+Iteration: 5200/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.79 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 11.24 | eta1 = 1.90 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.543533889987
+Iteration: 5400/20000, acceptance rate: 0.026, state: beta = 0.58 | epsilon = 0.75 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.76 | fsymp.M = 0.13 | fsymp.F = 0.13 | treat = 11.32 | eta1 = 1.87 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.481251939771
+Iteration: 5600/20000, acceptance rate: 0.027, state: beta = 0.58 | epsilon = 0.83 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.76 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 9.84 | eta1 = 2.24 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.411659910937
+Iteration: 5800/20000, acceptance rate: 0.026, state: beta = 0.59 | epsilon = 0.76 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.14 | treat = 11.43 | eta1 = 2.02 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.699271338731
+Iteration: 6000/20000, acceptance rate: 0.026, state: beta = 0.58 | epsilon = 0.70 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.12 | fsymp.F = 0.14 | treat = 12.58 | eta1 = 1.78 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.727574142587
+Iteration: 6200/20000, acceptance rate: 0.025, state: beta = 0.58 | epsilon = 0.75 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.12 | fsymp.F = 0.10 | treat = 10.35 | eta1 = 2.29 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.98024366748
+Iteration: 6400/20000, acceptance rate: 0.026, state: beta = 0.57 | epsilon = 0.91 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.72 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 10.67 | eta1 = 1.98 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.496656012289
+Iteration: 6600/20000, acceptance rate: 0.026, state: beta = 0.55 | epsilon = 0.83 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.11 | treat = 11.78 | eta1 = 2.36 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.614041329592
+Iteration: 6800/20000, acceptance rate: 0.026, state: beta = 0.59 | epsilon = 0.85 | gamma = 0.90 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.77 | fsymp.M = 0.14 | fsymp.F = 0.14 | treat = 12.77 | eta1 = 1.66 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.582481050307
+Iteration: 7000/20000, acceptance rate: 0.026, state: beta = 0.58 | epsilon = 0.78 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.77 | fsymp.M = 0.13 | fsymp.F = 0.11 | treat = 10.85 | eta1 = 2.02 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.158469586365
+Iteration: 7200/20000, acceptance rate: 0.025, state: beta = 0.55 | epsilon = 0.92 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.75 | fsymp.M = 0.16 | fsymp.F = 0.18 | treat = 10.82 | eta1 = 1.40 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.049338021744
+Iteration: 7400/20000, acceptance rate: 0.026, state: beta = 0.59 | epsilon = 0.71 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.77 | fsymp.M = 0.16 | fsymp.F = 0.11 | treat = 11.00 | eta1 = 2.30 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.445709233592
+Iteration: 7600/20000, acceptance rate: 0.026, state: beta = 0.59 | epsilon = 0.72 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.73 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 12.72 | eta1 = 1.87 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.752919425485
+Iteration: 7800/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.84 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.71 | fsymp.M = 0.12 | fsymp.F = 0.09 | treat = 12.25 | eta1 = 2.17 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.812167664344
+Iteration: 8000/20000, acceptance rate: 0.027, state: beta = 0.60 | epsilon = 0.77 | gamma = 0.88 | kappa = 0.00 | omega.A = 0.77 | omega.S = 0.77 | fsymp.M = 0.10 | fsymp.F = 0.10 | treat = 12.96 | eta1 = 2.17 | eta2 = -2.00 | r = 200.00
+, logdensity: -698.397882170471
+Iteration: 8200/20000, acceptance rate: 0.027, state: beta = 0.59 | epsilon = 0.60 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.75 | fsymp.M = 0.13 | fsymp.F = 0.15 | treat = 12.66 | eta1 = 1.88 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.806843265512
+Iteration: 8400/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.91 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.73 | fsymp.M = 0.08 | fsymp.F = 0.08 | treat = 12.88 | eta1 = 2.33 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.901016259828
+Iteration: 8600/20000, acceptance rate: 0.027, state: beta = 0.58 | epsilon = 0.79 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.75 | fsymp.M = 0.10 | fsymp.F = 0.08 | treat = 13.41 | eta1 = 2.54 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.645598413846
+Iteration: 8800/20000, acceptance rate: 0.026, state: beta = 0.57 | epsilon = 0.82 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.10 | treat = 13.63 | eta1 = 1.89 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.106761744797
+Iteration: 9000/20000, acceptance rate: 0.026, state: beta = 0.54 | epsilon = 0.97 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.76 | fsymp.M = 0.14 | fsymp.F = 0.09 | treat = 12.95 | eta1 = 2.43 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.189908615275
+Iteration: 9200/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.92 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.77 | omega.S = 0.73 | fsymp.M = 0.10 | fsymp.F = 0.07 | treat = 9.74 | eta1 = 2.19 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.435455458015
+Iteration: 9400/20000, acceptance rate: 0.026, state: beta = 0.57 | epsilon = 0.85 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 10.44 | eta1 = 2.39 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.048562796224
+Iteration: 9600/20000, acceptance rate: 0.027, state: beta = 0.58 | epsilon = 0.82 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.77 | omega.S = 0.75 | fsymp.M = 0.13 | fsymp.F = 0.10 | treat = 12.64 | eta1 = 1.79 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.329193969725
+Iteration: 9800/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.72 | gamma = 0.81 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.73 | fsymp.M = 0.15 | fsymp.F = 0.12 | treat = 10.23 | eta1 = 2.06 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.882671000618
+Iteration: 10000/20000, acceptance rate: 0.027, state: beta = 0.61 | epsilon = 0.58 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.11 | treat = 10.98 | eta1 = 1.87 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.540914272045
+Iteration: 10200/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.67 | gamma = 0.81 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.13 | treat = 10.96 | eta1 = 1.69 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.59892516035
+Iteration: 10400/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.90 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.11 | fsymp.F = 0.13 | treat = 11.51 | eta1 = 2.52 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.61693509377
+Iteration: 10600/20000, acceptance rate: 0.027, state: beta = 0.54 | epsilon = 0.91 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.10 | treat = 11.27 | eta1 = 2.28 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.845469349756
+Iteration: 10800/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.83 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.73 | fsymp.M = 0.14 | fsymp.F = 0.11 | treat = 11.77 | eta1 = 2.30 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.324139308257
+Iteration: 11000/20000, acceptance rate: 0.028, state: beta = 0.59 | epsilon = 0.74 | gamma = 0.88 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.75 | fsymp.M = 0.09 | fsymp.F = 0.05 | treat = 11.76 | eta1 = 2.63 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.636479498186
+Iteration: 11200/20000, acceptance rate: 0.028, state: beta = 0.62 | epsilon = 0.57 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.77 | omega.S = 0.74 | fsymp.M = 0.11 | fsymp.F = 0.10 | treat = 11.44 | eta1 = 2.34 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.200324390169
+Iteration: 11400/20000, acceptance rate: 0.028, state: beta = 0.58 | epsilon = 0.76 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.70 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.10 | treat = 11.72 | eta1 = 1.94 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.206522365935
+Iteration: 11600/20000, acceptance rate: 0.028, state: beta = 0.58 | epsilon = 0.81 | gamma = 0.88 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.75 | fsymp.M = 0.11 | fsymp.F = 0.14 | treat = 11.46 | eta1 = 1.65 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.284280534391
+Iteration: 11800/20000, acceptance rate: 0.028, state: beta = 0.58 | epsilon = 0.77 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.11 | fsymp.F = 0.10 | treat = 9.07 | eta1 = 1.86 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.560170807505
+Iteration: 12000/20000, acceptance rate: 0.028, state: beta = 0.59 | epsilon = 0.65 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.75 | fsymp.M = 0.17 | fsymp.F = 0.13 | treat = 8.46 | eta1 = 1.74 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.719634087576
+Iteration: 12200/20000, acceptance rate: 0.028, state: beta = 0.62 | epsilon = 0.50 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.16 | fsymp.F = 0.16 | treat = 8.70 | eta1 = 1.54 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.901216287126
+Iteration: 12400/20000, acceptance rate: 0.028, state: beta = 0.61 | epsilon = 0.60 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.73 | fsymp.M = 0.12 | fsymp.F = 0.14 | treat = 12.74 | eta1 = 2.03 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.594898897587
+Iteration: 12600/20000, acceptance rate: 0.028, state: beta = 0.63 | epsilon = 0.58 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.76 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 13.21 | eta1 = 2.14 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.283918474646
+Iteration: 12800/20000, acceptance rate: 0.028, state: beta = 0.60 | epsilon = 0.64 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.77 | fsymp.M = 0.12 | fsymp.F = 0.13 | treat = 12.93 | eta1 = 1.71 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.248466248479
+Iteration: 13000/20000, acceptance rate: 0.027, state: beta = 0.59 | epsilon = 0.67 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.76 | fsymp.M = 0.11 | fsymp.F = 0.12 | treat = 11.30 | eta1 = 1.70 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.186262568885
+Iteration: 13200/20000, acceptance rate: 0.027, state: beta = 0.60 | epsilon = 0.66 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.72 | fsymp.M = 0.13 | fsymp.F = 0.16 | treat = 10.56 | eta1 = 1.85 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.601727932013
+Iteration: 13400/20000, acceptance rate: 0.027, state: beta = 0.59 | epsilon = 0.74 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.70 | omega.S = 0.77 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 11.99 | eta1 = 2.29 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.669666726032
+Iteration: 13600/20000, acceptance rate: 0.027, state: beta = 0.60 | epsilon = 0.66 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.76 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 12.73 | eta1 = 1.94 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.328209123621
+Iteration: 13800/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.79 | gamma = 0.88 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.15 | treat = 11.04 | eta1 = 1.40 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.262925453164
+Iteration: 14000/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.85 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.72 | fsymp.M = 0.11 | fsymp.F = 0.08 | treat = 12.92 | eta1 = 2.69 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.119557016159
+Iteration: 14200/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.91 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.71 | fsymp.M = 0.11 | fsymp.F = 0.10 | treat = 13.25 | eta1 = 2.13 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.550393897248
+Iteration: 14400/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.87 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.09 | fsymp.F = 0.09 | treat = 12.57 | eta1 = 2.79 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.45285541757
+Iteration: 14600/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.86 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.76 | fsymp.M = 0.11 | fsymp.F = 0.15 | treat = 11.58 | eta1 = 2.12 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.648315881513
+Iteration: 14800/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.84 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.75 | fsymp.M = 0.13 | fsymp.F = 0.13 | treat = 9.60 | eta1 = 2.05 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.777915936343
+Iteration: 15000/20000, acceptance rate: 0.027, state: beta = 0.53 | epsilon = 0.92 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.72 | fsymp.M = 0.14 | fsymp.F = 0.12 | treat = 9.74 | eta1 = 1.67 | eta2 = -2.00 | r = 200.00
+, logdensity: -697.063767355641
+Iteration: 15200/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.82 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.71 | fsymp.M = 0.12 | fsymp.F = 0.12 | treat = 12.13 | eta1 = 2.03 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.887800491765
+Iteration: 15400/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.93 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.76 | fsymp.M = 0.12 | fsymp.F = 0.10 | treat = 11.44 | eta1 = 2.23 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.36282667372
+Iteration: 15600/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.84 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.08 | fsymp.F = 0.08 | treat = 13.28 | eta1 = 2.38 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.688227362943
+Iteration: 15800/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.82 | gamma = 0.81 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.72 | fsymp.M = 0.15 | fsymp.F = 0.13 | treat = 11.89 | eta1 = 2.05 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.870269479386
+Iteration: 16000/20000, acceptance rate: 0.027, state: beta = 0.59 | epsilon = 0.68 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.73 | fsymp.M = 0.12 | fsymp.F = 0.17 | treat = 10.35 | eta1 = 1.68 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.994631185552
+Iteration: 16200/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.78 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 9.24 | eta1 = 2.00 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.745875380727
+Iteration: 16400/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.83 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.11 | fsymp.F = 0.15 | treat = 10.77 | eta1 = 1.89 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.957718378579
+Iteration: 16600/20000, acceptance rate: 0.028, state: beta = 0.57 | epsilon = 0.90 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.74 | fsymp.M = 0.12 | fsymp.F = 0.11 | treat = 12.42 | eta1 = 2.36 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.455265018908
+Iteration: 16800/20000, acceptance rate: 0.028, state: beta = 0.58 | epsilon = 0.81 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.08 | treat = 12.26 | eta1 = 2.32 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.61584011501
+Iteration: 17000/20000, acceptance rate: 0.028, state: beta = 0.54 | epsilon = 0.89 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.10 | treat = 9.83 | eta1 = 2.64 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.132852246919
+Iteration: 17200/20000, acceptance rate: 0.028, state: beta = 0.57 | epsilon = 0.78 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.76 | fsymp.M = 0.16 | fsymp.F = 0.11 | treat = 10.31 | eta1 = 2.09 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.994783137573
+Iteration: 17400/20000, acceptance rate: 0.028, state: beta = 0.56 | epsilon = 0.76 | gamma = 0.84 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.11 | treat = 12.26 | eta1 = 1.64 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.819361589148
+Iteration: 17600/20000, acceptance rate: 0.028, state: beta = 0.57 | epsilon = 0.92 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.76 | fsymp.M = 0.13 | fsymp.F = 0.11 | treat = 9.87 | eta1 = 2.47 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.582569698592
+Iteration: 17800/20000, acceptance rate: 0.027, state: beta = 0.56 | epsilon = 0.80 | gamma = 0.86 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 10.55 | eta1 = 2.27 | eta2 = -2.00 | r = 200.00
+, logdensity: -692.862921978672
+Iteration: 18000/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.83 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.71 | omega.S = 0.76 | fsymp.M = 0.14 | fsymp.F = 0.11 | treat = 10.66 | eta1 = 1.99 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.634792057097
+Iteration: 18200/20000, acceptance rate: 0.027, state: beta = 0.55 | epsilon = 0.90 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.13 | treat = 11.75 | eta1 = 1.94 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.561754259718
+Iteration: 18400/20000, acceptance rate: 0.027, state: beta = 0.55 | epsilon = 0.90 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.74 | fsymp.M = 0.14 | fsymp.F = 0.13 | treat = 11.75 | eta1 = 1.94 | eta2 = -2.00 | r = 200.00
+, logdensity: -691.561754259718
+Iteration: 18600/20000, acceptance rate: 0.027, state: beta = 0.58 | epsilon = 0.75 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.75 | omega.S = 0.74 | fsymp.M = 0.13 | fsymp.F = 0.11 | treat = 11.51 | eta1 = 2.25 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.601321582551
+Iteration: 18800/20000, acceptance rate: 0.027, state: beta = 0.61 | epsilon = 0.59 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.75 | fsymp.M = 0.10 | fsymp.F = 0.14 | treat = 12.87 | eta1 = 1.80 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.117711071199
+Iteration: 19000/20000, acceptance rate: 0.027, state: beta = 0.61 | epsilon = 0.61 | gamma = 0.87 | kappa = 0.00 | omega.A = 0.74 | omega.S = 0.75 | fsymp.M = 0.14 | fsymp.F = 0.18 | treat = 11.89 | eta1 = 1.53 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.227893903046
+Iteration: 19200/20000, acceptance rate: 0.027, state: beta = 0.61 | epsilon = 0.51 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.10 | treat = 11.76 | eta1 = 1.80 | eta2 = -2.00 | r = 200.00
+, logdensity: -694.657133617883
+Iteration: 19400/20000, acceptance rate: 0.027, state: beta = 0.60 | epsilon = 0.76 | gamma = 0.89 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.77 | fsymp.M = 0.09 | fsymp.F = 0.12 | treat = 12.35 | eta1 = 2.55 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.567804584521
+Iteration: 19600/20000, acceptance rate: 0.027, state: beta = 0.53 | epsilon = 0.99 | gamma = 0.82 | kappa = 0.00 | omega.A = 0.73 | omega.S = 0.75 | fsymp.M = 0.12 | fsymp.F = 0.12 | treat = 12.18 | eta1 = 2.41 | eta2 = -2.00 | r = 200.00
+, logdensity: -696.552160710921
+Iteration: 19800/20000, acceptance rate: 0.027, state: beta = 0.57 | epsilon = 0.74 | gamma = 0.83 | kappa = 0.00 | omega.A = 0.72 | omega.S = 0.72 | fsymp.M = 0.12 | fsymp.F = 0.14 | treat = 12.72 | eta1 = 2.30 | eta2 = -2.00 | r = 200.00
+, logdensity: -695.728296055568
+Iteration: 20000/20000, acceptance rate: 0.027, state: beta = 0.58 | epsilon = 0.83 | gamma = 0.85 | kappa = 0.00 | omega.A = 0.76 | omega.S = 0.73 | fsymp.M = 0.13 | fsymp.F = 0.12 | treat = 12.78 | eta1 = 1.97 | eta2 = -2.00 | r = 200.00
+, logdensity: -693.358076722422
+Warning message:
+In dbinom(x = data.infecteds, size = data.agegroupsizes, prob = model.prev,  :
+  NaNs produced
+> 
+> proc.time()
+      user     system    elapsed 
+185576.934    123.727 185739.835 

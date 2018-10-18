@@ -1,0 +1,39 @@
+#! /bin/bash
+#SBATCH --mail-user=joost.smid@ispm.unibe.ch
+#SBATCH --mail-type=end,fail
+#SBATCH --time=95:00:00
+#SBATCH --mem-per-cpu=4G
+#SBATCH --array=1-60
+#SBATCH --output="error/slurm-%A.out"
+
+DAT="/gpfs/homefs/ispm/smid/genericSTI"
+SCRIPT="/gpfs/homefs/ispm/smid/genericSTI/scripts" # file with scripts
+RES="/gpfs/homefs/ispm/smid/genericSTI/scripts/results" # file with results
+TMP="/gpfs/homefs/ispm/smid/${SLURM_JOB_ID}" # temporary file
+DATA="trace${SLURM_ARRAY_TASK_ID}.RData"
+OUT="genericSTI${SLURM_ARRAY_TASK_ID}.Rout"
+# 1 - create map and make copy of subfolders
+mkdir -p $TMP
+cp -R $SCRIPT/* $TMP/.
+cd $TMP
+
+# Parameters
+
+# Sweeping parameters.txt
+N=${SLURM_ARRAY_TASK_ID}
+echo "$N"
+rx=`head -n ${N} parameters.txt | tail -n 1 | cut -d' ' -f1`
+ry=`head -n ${N} parameters.txt | tail -n 1 | cut -d' ' -f2`
+rz=`head -n ${N} parameters.txt | tail -n 1 | cut -d' ' -f3`
+# Display
+echo "Job array item $N: rx=$rx, ry=$ry, rz=$rz"
+echo "---------------------------------"
+
+# Run
+R CMD BATCH --no-save --no-restore "--args $rx $ry $rz" run_mcmc.R
+
+# 3 - copie des resultats et nettoyage
+cp ./results/trace.RData $RES/$DATA
+cp ./run_mcmc.Rout $RES/$OUT
+rm -rf $TMP
+echo "Job is done."

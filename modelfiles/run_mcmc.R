@@ -8,7 +8,6 @@ limits.lower <- c(beta = beta.prior.min,
                   kappa = kappa.prior.min,
                   omega.A = omega.A.prior.min,
                   omega.S = omega.S.prior.min,
-                  notif = notif.prior.min,
                   fsymp.M = fsymp.M.prior.min,
                   fsymp.F = fsymp.F.prior.min,
                   treat = treat.prior.min,
@@ -22,7 +21,6 @@ limits.upper <- c(beta = beta.prior.max,
                   kappa = kappa.prior.max,
                   omega.A = omega.A.prior.max,
                   omega.S = omega.S.prior.max,
-                  notif = notif.prior.max,
                   fsymp.M = fsymp.M.prior.max,
                   fsymp.F = fsymp.F.prior.max,
                   treat = treat.prior.max,
@@ -37,7 +35,6 @@ my.proposal.sd <- c(beta = 0.02,
                     kappa = 0.1,
                     omega.A = 0.02,
                     omega.S = 0.02,
-                    notif = 0.05,
                     fsymp.M = 0.02,
                     fsymp.F = 0.02,
                     treat = 0.8,
@@ -46,6 +43,7 @@ my.proposal.sd <- c(beta = 0.02,
                     r=15)
 
 # set sd of parameters that should not be inferred to zero
+# if you want a parameter to be not inferred, choose sd=0. Then parameter retains initial value
 my.proposal.sd[!(fullmodel %in% testmodel)] <- 0
 
 my.init.theta2 <- my.init.theta

@@ -7,7 +7,7 @@ source(file.path(path_in, "generate_cpp.R")) # functions to calculate the differ
 source(file.path(path_in, "cppvectorconv.R")) # script to convert tensors into vectors and back
 # source(file.path(path_in, "load_chlamydia_params_natsal.R")) # load model parameters using a Natsal dataset
 source(file.path(path_in, "load_chlamydia_params.R")) # load saved model parameters
-# source(file.path(path_in, "natsal_CTprevalences.R"))
+# source(file.path(path_in, "natsal_CTprevalences.R")) # load function to compute prevalences using a Natsal dataset
 
 #############################################################################################################
 ### compile c++ model
@@ -42,47 +42,46 @@ natsal3.meandenominator.prevs <- apply(natsal3.prevs.all$denominator,MARGIN=c(1,
 
 #combine data
 dimnames.epidata <- list(sex=c("M","F"), age=paste0('age', age.class.groups), quotient=c("num","denom"))
-
 epidata_2000 <- to.tensor(c(round(as.vector(natsal2.meannumerator.prevs)),as.vector(natsal2.meandenominator.prevs)), dims = dimnames.epidata)
 epidata_2011 <- to.tensor(c(round(as.vector(natsal3.meannumerator.prevs)),as.vector(natsal3.meandenominator.prevs)), dims = dimnames.epidata)
 
-### diagnosis epidata (from Chandra et al, Eurosurveillance 2017)
-source(file.path(path_in,"CT_diagdata_averages.R"))
-age.catdata <- c(15,20,25,35,45)
-epidata_diag <- get.CT.diagdata(age.catdata)
-names_diag <- dimnames(epidata_diag)
-names_diag$screening_y <- names_diag$screening_y[1:12]
-epidata_diag <- epidata_diag[,,1:12]
-dimnames(epidata_diag) <- names_diag
+### diagnosis epidata
+diagdata <- read.table(file.path(path_data,diagdatafile), header=T, row.names=1)
+agecategories_diag <- c(15,20,25,35)
+diag <- to.tensor(NA, dims = list(sex=sex, age=paste0('age', agecategories_diag),screening_y = as.numeric(rownames(diagdata))))
+for (a in 1:length(agecategories_diag)){
+  for (y in 1:dim(diagdata)[1]){
+    diag[1,a,y] <- diagdata[y,a]
+    diag[2,a,y] <- diagdata[y,a+4]
+  }
+}
 
 #we have epidata at time burnintime + 0 (we have screening data from 2000, NATSAL-2 data is of 2000) and at time burnintime +11 (NATSAL-3; 2011)
-epidata <- list(time_0 = epidata_2000,time_11 = epidata_2011, epidata_diag=epidata_diag)
+epidata <- list(time_0 = epidata_2000,time_11 = epidata_2011, epidata_diag=diag)
 
 ##############################################################################
 # BAYESIAN ESTIMATION OF beta USING MH ALGORITHM
 ##############################################################################
 
 #statistics prior
-beta.prior.min <- 0.4
-beta.prior.max <- 0.9
-epsilon.prior.min <- 0.5
+beta.prior.min <- 0
+beta.prior.max <- 1
+epsilon.prior.min <- 0
 epsilon.prior.max <- 1
-gamma.prior.min <- 0.5
-gamma.prior.max <- 2
+gamma.prior.min <- 0
+gamma.prior.max <- 10
 kappa.prior.min <- 0
 kappa.prior.max <- 1
-omega.A.prior.min <- 0.5
-omega.A.prior.max <- 1
-omega.S.prior.min <- 0.5
-omega.S.prior.max <- 1
-notif.prior.min <- 0
-notif.prior.max <- 1
+omega.A.prior.min <- 0
+omega.A.prior.max <- 10
+omega.S.prior.min <- 0
+omega.S.prior.max <- 10
 fsymp.M.prior.min <- 0
-fsymp.M.prior.max <- 0.2
+fsymp.M.prior.max <- 1
 fsymp.F.prior.min <- 0
-fsymp.F.prior.max <- 0.2
-treat.prior.min <- 365/40
-treat.prior.max <- 365/15
+fsymp.F.prior.max <- 1
+treat.prior.min <- 0
+treat.prior.max <- 20
 eta1.prior.min <- 1
 eta1.prior.max <- 10
 eta2.prior.min <- -2
@@ -95,14 +94,14 @@ beta.prior.shape1 <- 6
 beta.prior.shape2 <- 4
 epsilon.prior.shape1 <- 8
 epsilon.prior.shape2 <- 2
-gamma.prior.mean <- 1 #0.74 : M. Price, Stat. Med., 2012
-gamma.prior.sd <- ((0.74-0.61) + (0.89-0.74) / 2) / 1.96 #M. Price, Stat. Med., 2012
-omega.prior.mean <- 0.921 #Batteiger, JID 2010:201
-omega.A.prior.sd <- ((0.921-0.899) + (0.96-0.921) / 2) / 1.96 #Batteiger, JID 2010:201
-omega.A.prior.mean <- 0.921 #Batteiger, JID 2010:201
-omega.S.prior.sd <- ((0.921-0.899) + (0.96-0.921) / 2) / 1.96 #Batteiger, JID 2010:201
-omega.S.prior.mean <- 0.921 #Batteiger, JID 2010:201
-omega.prior.sd <- ((0.921-0.899) + (0.96-0.921) / 2) / 1.96 #Batteiger, JID 2010:201
+gamma.prior.mean <- 365/433 #Althaus, C. L., Heijne, J. C. M., Roellin, A. & Low, N. Transmission dynamics of Chlamydia trachomatis affect the impact of screening programmes. Epidemics-Neth 2, 123-131, doi:10.1016/j.epidem.2010.04.002 (2010
+gamma.prior.sd <- ((365/433-365/447) + (365/420-365/433) / 2) / 1.96 #Althaus, C. L., Heijne, J. C. M., Roellin, A. & Low, N. 
+omega.A.prior.mean <- 0.921*(1-0.194) #Batteiger, JID 2010:201
+omega.A.prior.sd <- (1-0.194)*((0.921-0.899) + (0.96-0.921) / 2) / 1.96 #Batteiger, JID 2010:201
+omega.S.prior.mean <- 0.921*(1-0.194) #Batteiger, JID 2010:201
+omega.S.prior.sd <- (1-0.194)*((0.921-0.899) + (0.96-0.921) / 2) / 1.96 #Batteiger, JID 2010:201
+treat.prior.mean <- 365/33 # Bethan Davies, Sarah-Jane Anderson, [...], and Helen Ward, How robust are the natural history parameters used in chlamydia transmission dynamic models? A systematic review
+treat.prior.sd <- ((365/33-365/40) + (365/30-365/33) / 2) / 1.96
 
 n.unknown <- length(testmodel) # number of parameters that need to be inferred
 
@@ -123,7 +122,6 @@ STI_MCMC_model <- list(name="generic STI model",
                          omega.A <- theta[["omega.A"]]
                          omega.S <- theta[["omega.S"]]
                          parameters$omega <- c(omega.A,omega.S)
-                         parameters$notif <- theta[["notif"]]
                          fsymp.M <- theta[["fsymp.M"]]
                          fsymp.F <- theta[["fsymp.F"]]
                          parameters$fsymp <- c(fsymp.M,fsymp.F)
@@ -137,7 +135,6 @@ STI_MCMC_model <- list(name="generic STI model",
                                                 gamma = parameters$gamma,
                                                 kappa = parameters$kappa,
                                                 omega = parameters$omega,
-                                                notif = parameters$notif,
                                                 fsymp = parameters$fsymp,
                                                 treat = parameters$treat,
                                                 eta = parameters$eta)
@@ -156,6 +153,12 @@ STI_MCMC_model <- list(name="generic STI model",
                            mutatetext <- paste0("mutate(trajectory,", D_name, "=c(0,diff(", D_name, ")))")
                            trajectory <- eval(parse(text=mutatetext))
                          }
+                         # compute number of new cases per year instead of cumulative number
+                         for (k in grep("Inc_", names(trajectory))){
+                           Inc_name <- names(trajectory)[k]
+                           mutatetext <- paste0("mutate(trajectory,", Inc_name, "=c(0,diff(", Inc_name, ")))")
+                           trajectory <- eval(parse(text=mutatetext))
+                         }
 
                          return(trajectory)
 
@@ -172,10 +175,9 @@ STI_MCMC_model <- list(name="generic STI model",
                          log.prior.kappa <- dunif(theta[["kappa"]], min = kappa.prior.min, max = kappa.prior.max, log = TRUE)
                          log.prior.omega.A <- dnorm(theta[["omega.A"]], mean = omega.A.prior.mean, sd = omega.A.prior.sd, log = TRUE)
                          log.prior.omega.S <- dnorm(theta[["omega.S"]], mean = omega.S.prior.mean, sd = omega.S.prior.sd, log = TRUE)
-                         log.prior.notif <- dunif(theta[["notif"]], min = notif.prior.min, max = notif.prior.max, log = TRUE)
                          log.prior.fsymp.M <- dunif(theta[["fsymp.M"]], min = fsymp.M.prior.min, max = fsymp.M.prior.max, log = TRUE)
                          log.prior.fsymp.F <- dunif(theta[["fsymp.F"]], min = fsymp.F.prior.min, max = fsymp.F.prior.max, log = TRUE)
-                         log.prior.treat <- dunif(theta[["treat"]], min = treat.prior.min, max = treat.prior.max, log = TRUE)
+                         log.prior.treat <- dnorm(theta[["treat"]], mean = treat.prior.mean, sd = treat.prior.sd, log = TRUE)
                          log.prior.eta1 <- dunif(theta[["eta1"]], min = eta1.prior.min, max = eta1.prior.max, log = TRUE)
                          log.prior.eta2 <- dunif(theta[["eta2"]], min = eta2.prior.min, max = eta2.prior.max, log = TRUE)
 
@@ -183,7 +185,7 @@ STI_MCMC_model <- list(name="generic STI model",
                          #mu=100;v=5000;x<-seq(0,1000,1);plot(x,dgamma(x,mu^2/v,mu/v), type="l")
 
                          log.sum <- sum(log.prior.beta) + sum(log.prior.epsilon) + sum(log.prior.gamma) + sum(log.prior.kappa ) +
-                           sum(log.prior.omega.A) +sum(log.prior.omega.S) +  sum(log.prior.notif) + sum(log.prior.fsymp.M) + sum(log.prior.fsymp.F) +
+                           sum(log.prior.omega.A) +sum(log.prior.omega.S) +  sum(log.prior.fsymp.M) + sum(log.prior.fsymp.F) +
                            sum(log.prior.treat) + sum(log.prior.eta1) + sum(log.prior.eta2) + log.prior.r
                          if (log.sum==-Inf) cat("wrong priors given to mcmc algorithm; priors:",theta, "\n")
                          return(ifelse(log, log.sum, exp(log.sum)))
@@ -214,7 +216,8 @@ my_dTrajObs <- function (fitmodel, theta, data)
   }
 
   age<-paste0('age', age.class.groups)
-  times <- c(0, (burnintime - testperiod_in_burnin):max.simtime)
+
+  times <- c(0, (parameters$burnintime - parameters$testperiod_in_burnin):(parameters$burnintime+dim(diagdata)[1]))
   # we should start at burnintime - testperiod_in_burnin because diagnoses have to be mutated from that point on
 
   traj <- fitmodel$simulate(theta, times)
@@ -225,7 +228,7 @@ my_dTrajObs <- function (fitmodel, theta, data)
   # compute density for prevalence data
   ###################################################
 
-  years.prevdata <- c(2000, 2011) - 2000 + burnintime #2000, 2011
+  years.prevdata <- c(2000, 2011) - 2000 + parameters$burnintime #2000, 2011
   for (k in 1:2) { # loop for different time points (for us: NATSAL-2 and NATSAL-3)
 
     # model output

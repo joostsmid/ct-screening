@@ -96,18 +96,35 @@ kappa["M"] <- .9
 kappa["F"] <- .9
 
 ##############################################################################################################################
-### screening rate
+### testing rate
 ##############################################################################################################################
 
-source(file.path(path_in,"CT_screendata_averages.R"))
+#also see natsal_screendata_plots.R: there are no screen data available in NATSAL 2. We assume that at that time, nobody was
+#screened (prescreen.prop) and that screening was gradually put in place over a period of 9 years to arrive at the screening uptake seen in NATSAL3.
+#Here we retrieve the data from NATSAL 3 and distinguish between gender, acticvity class and ages
+#it is assumed that after the last year of screening for which data are available, screening rates stay at that level
 
-# per capita number of tests in the entire population
-chi_all <- get.CT.screendata(age.classes)
+### tests epidata
+testdata <- read.table(file.path(path_data,testdatafile), header=T, row.names=1)
+testspp <- to.tensor(NA, dims = list(sex=sex, age=paste0('age', age.class.groups),screening_y = as.numeric(rownames(testdata))))
+
+for (y in 1:dim(testdata)[1]){
+  testspp[1,1,y] <- testdata[y,1]/100
+  testspp[1,2,y] <- testdata[y,1]/100
+  testspp[1,3,y] <- testdata[y,2]/100
+  testspp[1,4,y] <- testdata[y,3]/100
+  testspp[1,5,y] <- testdata[y,4]/100
+  
+  testspp[2,1,y] <- testdata[y,5]/100
+  testspp[2,2,y] <- testdata[y,5]/100
+  testspp[2,3,y] <- testdata[y,6]/100
+  testspp[2,4,y] <- testdata[y,7]/100
+  testspp[2,5,y] <- testdata[y,8]/100
+}
 
 # account for the different size of the age groups: number of tests done per modelled compartment (marginalized over activity classes)
-size.age.classes <- to.tensor(diff(age.classes), dims=list(age=paste0('age', age.classes[1:n.age.classes]))) 
-chi_all <- chi_all * size.age.classes
-chi_all <- chi_all[,,1:(modelled_NCSP_years+1)]
+size.age.classes <- to.tensor(diff(age.classes), dims=list(age=paste0('age', age.classes[1:n.age.classes]))) #JS040416
+chi_all <- testspp * size.age.classes
 
 ##############################################################################################################################
 ### average factor by which infected/exposed people receive more testing pp than susceptibles/recovereds  (exponential relation)
@@ -126,11 +143,6 @@ eta <- c(3,0)
 
 omega <- c(0.921*(1-0.194), 0.921*(1-0.194)) # for asymptomatic and symptomatic infections, respectively
 
-##############################################################################################################################
-### fraction of the total Ct treatments (per year), that are treatments because of partner notification.
-##############################################################################################################################
-
-notif <- 0
 
 ##############################################################################################################################
 ### fraction symptomatic
@@ -145,18 +157,15 @@ fsymp  <- to.tensor(c(0.1,0.1), dims = list(sex=c("M","F")) )
 treat <- 365/33 # Davies et al, 2014
 
 ##############################################################################################################################
-### years of testing before years_screening (intervention is assumed to occur at t=burnintime)
-### the testing rate is assumed to increase linearly in this period from zero to chi(0,g,j,a)
+### time to run system into steady state, and period in which screening is assumed to have increased leinearly before 2000
 ##############################################################################################################################
 
+burnintime <- 100
 testperiod_in_burnin <- 10
 
 ##############################################################################################################################
 ### initials
 ##############################################################################################################################
-
-source(file.path(path_in,"CT_diagdata_averages.R"))
-epidata_diag <- get.CT.diagdata(age.classes)
 
 size.age.classes <- to.tensor(diff(age.classes), dims=list(age=paste0('age', age.classes[1:n.age.classes]))) #JS040416
 
@@ -173,6 +182,8 @@ R <- to.tensor(rep(0, nJ*n.age.classes*length(c("M","F"))), dims  = list(sex=c("
 I_A2 <- to.tensor(rep(0, nJ*n.age.classes*length(c("M","F"))), dims  = list(sex=c("M","F"), j=paste0('j',1:nJ), age=paste0('age', age.class.groups)))
 I_S2 <- to.tensor(rep(0, nJ*n.age.classes*length(c("M","F"))), dims  = list(sex=c("M","F"), j=paste0('j',1:nJ), age=paste0('age', age.class.groups)))
 D <- to.tensor(rep(0, nJ*n.age.classes*length(c("M","F"))), dims  = list(sex=c("M","F"), j=paste0('j',1:nJ), age=paste0('age', age.class.groups)))
+Inc <- to.tensor(rep(0, nJ*n.age.classes*length(c("M","F"))), dims  = list(sex=c("M","F"), j=paste0('j',1:nJ), age=paste0('age', age.class.groups)))
+
 
 U <- U*size.age.classes
 S <- S*size.age.classes
@@ -184,10 +195,10 @@ I_S2 <- I_S2*size.age.classes
 D <- D*size.age.classes
 
 init.cpp <- c(tens.to.vec.cpp(U), tens.to.vec.cpp(S), tens.to.vec.cpp(I_A), tens.to.vec.cpp(I_S),tens.to.vec.cpp(R),
-              tens.to.vec.cpp(I_A2), tens.to.vec.cpp(I_S2), tens.to.vec.cpp(D))
+              tens.to.vec.cpp(I_A2), tens.to.vec.cpp(I_S2), tens.to.vec.cpp(D), tens.to.vec.cpp(Inc))
 
 parameters <- list(sex = c("M","F"), nJ = nJ, n.age.classes = n.age.classes, age.classes = age.classes, ar = ar, vl = vl, fold = fold,
                    beta = beta, ct = ct, rho_age = rho_age, theta = theta,
                    epsilon = epsilon, sw = sw, gamma = gamma,  kappa = kappa,
-                   chi_all=chi_all, eta=eta, omega=omega, notif=notif, fsymp=fsymp, treat=treat,
+                   chi_all=chi_all, eta=eta, omega=omega, fsymp=fsymp, treat=treat,
                    burnintime = burnintime, testperiod_in_burnin = testperiod_in_burnin)

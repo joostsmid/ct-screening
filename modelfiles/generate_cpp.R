@@ -203,12 +203,7 @@ generate.cpp.code <- function(parms, filename = "STIreduced.cpp"){
   write("   omega[1] = args[arg_counter];", filename, append = TRUE, sep = "\n") 
   write("   arg_counter++;", filename, append = TRUE, sep = "\n") 
   write("  ", filename, append = TRUE, sep = "\n")
-  
-  ### percentage of sexual contacted notified to sexual partners
-  write("   double notif;", filename, append = TRUE, sep = "\n") 
-  write("   notif = args[arg_counter];", filename, append = TRUE, sep = "\n") 
-  write("   arg_counter++;", filename, append = TRUE, sep = "\n") 
-  write("  ", filename, append = TRUE, sep = "\n")
+
   
   ### fraction symptomatic
   write("   double fsymp[sex_length];", filename, append = TRUE, sep = "\n") #JS010516
@@ -484,6 +479,7 @@ generate.cpp.code <- function(parms, filename = "STIreduced.cpp"){
   write("   double dI_A2[sex_length][nmb_act_classes][nmb_age_classes]; // asymp infecteds", filename, append = TRUE, sep = "\n")
   write("   double dI_S2[sex_length][nmb_act_classes][nmb_age_classes]; // symp infecteds", filename, append = TRUE, sep = "\n")
   write("   double dD[sex_length][nmb_act_classes][nmb_age_classes]; // diagnosed", filename, append = TRUE, sep = "\n")
+  write("   double dInc[sex_length][nmb_act_classes][nmb_age_classes]; // incidence", filename, append = TRUE, sep = "\n")
 
   write("    ", filename, append = TRUE, sep = "\n")
   write("   /// calculate rho /////", filename, append = TRUE, sep = "\n")
@@ -740,13 +736,14 @@ generate.cpp.code <- function(parms, filename = "STIreduced.cpp"){
   
   write("         /// calculate the differentials ", filename, append = TRUE, sep = "\n")
   write("         double tottreatments = screen[g][a] * (I_A[g][j][a]+I_A2[g][j][a]) + treat * (I_S[g][j][a]+I_S2[g][j][a]);", filename, append = TRUE, sep = "\n") 
-  write("         dS [g][j][a] = -aging_rate[a]*S[g][j][a] + fold[g][j] * S_incoming_vl + S_incoming_age - lambda[g][j][a]*S[g][j][a] + (1-notif) * (omega[0] * screen[g][a]*I_A[g][j][a] + omega[1] * treat * I_S[g][j][a]) + notif * (omega[0] *tottreatments *(I_A[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a])) + omega[1] * tottreatments * (I_S[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a])));", filename, append = TRUE, sep = "\n") #JS290216
-  write("         dI_A [g][j][a] = -aging_rate[a]*I_A[g][j][a] + I_A_incoming + (1-fsymp[g])* lambda[g][j][a]*S[g][j][a] - (gamma[g] + (1-notif) * omega[0] * screen[g][a])*I_A[g][j][a] - notif * omega[0] *tottreatments *(I_A[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a]));", filename, append = TRUE, sep = "\n")
-  write("         dI_S [g][j][a] = -aging_rate[a]*I_S[g][j][a] + I_S_incoming + fsymp[g] * lambda[g][j][a]*S[g][j][a] - ((1-notif) * omega[1] * treat)*I_S[g][j][a] - notif * omega[1] * tottreatments * (I_S[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a]));", filename, append = TRUE, sep = "\n")
-  write("         dR [g][j][a] = -aging_rate[a]*R[g][j][a] + R_incoming + gamma[g]*I_A[g][j][a]+ gamma[g]*I_A2[g][j][a] - ((1-kappa[g])* lambda[g][j][a])*R[g][j][a] + (1-notif) * (omega[0] * screen[g][a]*I_A2[g][j][a] + omega[1] * treat * I_S2[g][j][a])  + notif * (omega[0] * tottreatments * (I_A2[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a])) + omega[1] * tottreatments * (I_S2[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a])));", filename, append = TRUE, sep = "\n")
-  write("         dI_A2 [g][j][a] = -aging_rate[a]*I_A2[g][j][a] + I_A_incoming2 + (1-fsymp[g])* (1-kappa[g]) * lambda[g][j][a]*R[g][j][a] - (gamma[g] + (1-notif) * omega[0] * screen[g][a])*I_A2[g][j][a] - notif * omega[0] * tottreatments * (I_A2[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a]));", filename, append = TRUE, sep = "\n")
-  write("         dI_S2 [g][j][a] = -aging_rate[a]*I_S2[g][j][a] + I_S_incoming2 + fsymp[g] * (1-kappa[g]) * lambda[g][j][a]*R[g][j][a] - ((1-notif) * omega[1] * treat)*I_S2[g][j][a] - notif * omega[1] * tottreatments * (I_S2[g][j][a] / (I_A[g][j][a] + I_S[g][j][a]+I_A2[g][j][a] + I_S2[g][j][a]));", filename, append = TRUE, sep = "\n")
+  write("         dS [g][j][a] = -aging_rate[a]*S[g][j][a] + fold[g][j] * S_incoming_vl + S_incoming_age - lambda[g][j][a]*S[g][j][a] + (omega[0] * screen[g][a]*I_A[g][j][a] + omega[1] * treat * I_S[g][j][a]) ;", filename, append = TRUE, sep = "\n") #JS290216
+  write("         dI_A [g][j][a] = -aging_rate[a]*I_A[g][j][a] + I_A_incoming + (1-fsymp[g])* lambda[g][j][a]*S[g][j][a] - (gamma[g] + omega[0] * screen[g][a])*I_A[g][j][a] ;", filename, append = TRUE, sep = "\n")
+  write("         dI_S [g][j][a] = -aging_rate[a]*I_S[g][j][a] + I_S_incoming + fsymp[g] * lambda[g][j][a]*S[g][j][a] - (omega[1] * treat)*I_S[g][j][a];", filename, append = TRUE, sep = "\n")
+  write("         dR [g][j][a] = -aging_rate[a]*R[g][j][a] + R_incoming + gamma[g]*I_A[g][j][a]+ gamma[g]*I_A2[g][j][a] - ((1-kappa[g])* lambda[g][j][a])*R[g][j][a] + (omega[0] * screen[g][a]*I_A2[g][j][a] + omega[1] * treat * I_S2[g][j][a]) ;", filename, append = TRUE, sep = "\n")
+  write("         dI_A2 [g][j][a] = -aging_rate[a]*I_A2[g][j][a] + I_A_incoming2 + (1-fsymp[g])* (1-kappa[g]) * lambda[g][j][a]*R[g][j][a] - (gamma[g] + omega[0] * screen[g][a])*I_A2[g][j][a] ;", filename, append = TRUE, sep = "\n")
+  write("         dI_S2 [g][j][a] = -aging_rate[a]*I_S2[g][j][a] + I_S_incoming2 + fsymp[g] * (1-kappa[g]) * lambda[g][j][a]*R[g][j][a] - (omega[1] * treat)*I_S2[g][j][a];", filename, append = TRUE, sep = "\n")
   write("         dD [g][j][a] = tottreatments;", filename, append = TRUE, sep = "\n") # treatment efficacy not used here: also unsuccesful treatments get in the testing records
+  write("         dInc [g][j][a] = lambda[g][j][a]*S[g][j][a] + (1-kappa[g]) * lambda[g][j][a]*R[g][j][a];", filename, append = TRUE, sep = "\n") # treatment efficacy not used here: also unsuccesful treatments get in the testing records
   
   write("     ", filename, append = TRUE, sep = "\n")
   write("         /// switching between classes ", filename, append = TRUE, sep = "\n")
@@ -812,6 +809,7 @@ generate.cpp.code <- function(parms, filename = "STIreduced.cpp"){
   write("         res [res_counter + 4*tensor_entry_numbers] = dI_A2 [g][j][a];", filename, append = TRUE, sep = "\n")
   write("         res [res_counter + 5*tensor_entry_numbers] = dI_S2 [g][j][a];", filename, append = TRUE, sep = "\n")
   write("         res [res_counter + 6*tensor_entry_numbers] = dD [g][j][a];", filename, append = TRUE, sep = "\n")
+  write("         res [res_counter + 7*tensor_entry_numbers] = dInc[g][j][a];", filename, append = TRUE, sep = "\n")
   write("   ", filename, append = TRUE, sep = "\n")
   write("         res_counter++;", filename, append = TRUE, sep = "\n")
   write("       }", filename, append = TRUE, sep = "\n")
