@@ -29,7 +29,7 @@ path_results <- "results"
 path_figures <- "figures"
 
 n.mcmc.iterations <- 20000
-nsimsplot <- 500
+nsimsplot <- 100
 
 source(file.path(path_in, "define_mcmc.R"))
 source(file.path(path_in, "plot_functions.R"))
@@ -182,6 +182,7 @@ simulate_prevs_diag <- function(trace.mcmc.pars, fitmodel, years=myyears, CI=.95
   
   
   for (s in 1:plottedsims){
+    print(s)
     theta <- trace.mcmc.pars[s, 1:length(testmodel)]
     notlearned <- tracetrace[1,which(!(fullmodel %in% testmodel))]
     if(length(notlearned)==1) names(notlearned) <- "r"
@@ -700,6 +701,7 @@ compute_rates_time <- function(trace.mcmc.pars,fitmodel, years){
   
   
   for (s in 1:plottedsims){
+    print(s)
     theta <- trace.mcmc.pars[s, 1:length(testmodel)]
     notlearned <- tracetrace[1,which(!(fullmodel %in% testmodel))]
     if(length(notlearned)==1) names(notlearned) <- "r"
@@ -843,7 +845,7 @@ etaF_timeplot <- ggplot() +
   theme(plot.background = element_blank(),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),text=element_text(size=10, family="Arial"))
 
 ggsave(multiplot(plotlist=list(etaM_timeplot,etaF_timeplot), layout=matrix(c(1,2), nrow=1, byrow=TRUE)), 
-       filename = file.path(path_figures,"eta_plot_1524.pdf"), device = cairo_pdf, 
+       filename = file.path(path_figures,"eta_timeplot.pdf"), device = cairo_pdf, 
        width = 7, height = 4, units = "in")
 
 gendernames <- c("Men","Women")

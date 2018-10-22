@@ -1,0 +1,66 @@
+#! /bin/bash
+#SBATCH --mail-user=joost.smid@ispm.unibe.ch
+#SBATCH --mail-type=end,fail
+#SBATCH --time=10:00:00
+#SBATCH --mem-per-cpu=2G
+#SBATCH --array=1-12                               # change size
+#SBATCH --output="error/slurm-%A.out"
+
+DAT="/gpfs/homefs/ispm/smid/genericSTI"
+SCRIPT="/gpfs/homefs/ispm/smid/genericSTI/scripts" # change directory name
+RES="/gpfs/homefs/ispm/smid/genericSTI/scripts/figures"  # change directory name
+TMP="/gpfs/homefs/ispm/smid/${SLURM_JOB_ID}" 
+
+XYPLOT="xyplot${SLURM_ARRAY_TASK_ID}.pdf" 
+DENSITYPLOT="densityplot${SLURM_ARRAY_TASK_ID}.pdf" 
+EPIPREVPLOT="epiprevplot${SLURM_ARRAY_TASK_ID}.pdf" 
+PREVTIMEPLOT="prevtimeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+TESTSPLOT="testsplot${SLURM_ARRAY_TASK_ID}.pdf" 
+DIAGPLOT="diagplot${SLURM_ARRAY_TASK_ID}.pdf" 
+INCIDENCE_TIMEPLOT="incidence_timeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+POSRATEPLOT="posrateplot${SLURM_ARRAY_TASK_ID}.pdf"
+eta_timeplot="eta_timeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+ETA_PLOT="eta_plot${SLURM_ARRAY_TASK_ID}.pdf" 
+screenrate_tot_timeplot="screenrate_tot_timeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+screenrate_inf_timeplot="screenrate_inf_timeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+screenrate_sus_timeplot="screenrate_sus_timeplot${SLURM_ARRAY_TASK_ID}.pdf" 
+prevtime_counterfactual_plot="prevtime_counterfactual_plot${SLURM_ARRAY_TASK_ID}.pdf" 
+
+MCMCDATA="mcmcdata${SLURM_ARRAY_TASK_ID}.RData" 
+PLOTSUMMARYDATA="plotsummarydata${SLURM_ARRAY_TASK_ID}.RData" 
+
+OUT="genericSTI${SLURM_ARRAY_TASK_ID}.Rout"
+
+mkdir -p $TMP
+cp -R $SCRIPT/* $TMP/.
+cd $TMP
+
+N=${SLURM_ARRAY_TASK_ID}
+echo "$N"
+rx=`head -n ${N} parameters_analyze.txt | tail -n 1 | cut -d' ' -f1`
+ry=`head -n ${N} parameters_analyze.txt | tail -n 1 | cut -d' ' -f2`
+echo "Job array item $N: rx=$rx ry=$ry"
+echo "---------------------------------"
+
+R CMD BATCH --no-save --no-restore "--args $rx $ry" analyze_mcmc.R
+
+cp ./figures/xyplot.pdf $RES/$XYPLOT
+cp ./figures/densityplot.pdf $RES/$DENSITYPLOT
+cp ./figures/epiprevplot.pdf $RES/$EPIPREVPLOT
+cp ./figures/prevtimeplot.pdf $RES/$PREVTIMEPLOT
+cp ./figures/testsplot.pdf $RES/$TESTSPLOT
+cp ./figures/diagplot.pdf $RES/$DIAGPLOT
+cp ./figures/incidence_timeplot.pdf $RES/$INCIDENCE_TIMEPLOT
+cp ./figures/posrateplot.pdf $RES/$POSRATEPLOT
+cp ./figures/eta_timeplot $RES/$eta_timeplot
+cp ./figures/eta_plot.pdf $RES/$ETA_PLOT
+cp ./figures/screenrate_tot_timeplot.pdf $RES/$screenrate_tot_timeplot
+cp ./figures/screenrate_inf_timeplot.pdf $RES/$screenrate_inf_timeplot
+cp ./figures/screenrate_sus_timeplot.pdf $RES/$screenrate_sus_timeplot
+cp ./figures/prevtime_counterfactual_plot.pdf $RES/$prevtime_counterfactual_plot
+
+cp ./figures/mcmcdata.RData $RES/$MCMCDATA
+cp ./figures/plotsummarydata.RData $RES/$PLOTSUMMARYDATA
+cp ./analyze_mcmc.Rout $RES/$OUT
+rm -rf $TMP
+echo "Job is done."
