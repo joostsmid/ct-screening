@@ -13,7 +13,7 @@ _Main directory files_
 
 The following two R scripts run the model using the input files from the `data/` directory and the model code from the `modelfiles/` directory. They generate the posterior parameter distributions and figures which are stored in the `results/` and `figures/` directories, respectively. Instructions for running the code are provided in the next section.
 
-- **run_multicore.R:** Contains the main algorithm calling other routines in `modelfiles/` to read in the data files in `data/` and runs the MCMC fitting routine. For each model type, five MCMC chains are run. Results for each model (28 different) and each MCMC run per model (5 different) are stored in the `results/` directory. 
+- **run_mcmc.R:** Contains the main algorithm calling other routines in `modelfiles/` to read in the data files in `data/` and runs the MCMC fitting routine. For each model type, five MCMC chains are run. Results for each data type (mean, minimum or maximum data from Chandra _et al._ (2017)<sup>3</sup>), each model (4 different) and each MCMC run per model (5 different) are stored in the `results/` directory. 
   
 - **analyze_mcmc.R:** Uses the results for each model stored in the `results/` directory to produce the summary results, Figures and Tables. The MCMC chains for one model are combined. Figures and Tables are stored in the `figures/` directory. 
 
@@ -31,18 +31,18 @@ MCMC trace results for each model (28 different) and each MCMC run per model (5 
 
 _Figures_
 
-Summary results, Figures and Tables for each model variant (28 in total) are stored in the `figures/` directory.
+Summary results, Figures and Tables for each model variant are stored in the `figures/` directory.
 
 ### Instructions for running the model ###
 
 To run the model and analyze its results perform the following steps:
-Source `run_multicore.R` to generate MCMC traces. To run one model separately, lines 1-3 in this file should be replaced by `args <- c(x,y)`, where `x` is a number from 1 to 28 (one of the model types), and `y` is a number between 1 and 5 (one MCMC chain). This produces the MCMC trace and places it in the `results/` directory.
+Source `run_mcmc.R` to generate MCMC traces. To run one model separately, lines 1-3 in this file should be replaced by `args <- c(x,y,z)`, where `x` is a number from 1 to 3 (mean, minimum or maximum data), `y` is a number from 1 to 4 (one of the model types), and `z` is a number between 1 and 5 (one MCMC chain). This produces the MCMC trace and places it in the `results/` directory.
 
-Alternatively, one can run all models simultaneously as a batch job on a computing cluster using the files `run_final.job` and the parameter combinations “parameters.txt” (specifying combinations of model types and MCMC runs), for each job.
+Alternatively, one can run all models simultaneously as a batch job on a computing cluster using the files `run_mcmc.job` and the parameter combinations “parameters.txt” (specifying combinations of model types and MCMC runs), for each job.
 
-Source `analyze_mcmc.R` to produce the summary results, Figures and Tables. To produce these for one model separately, lines 1-3 in this file should be replaced by `args <- x`, where `x` is a number from 1 to 28 (one of the model types). This produces summary results, Figures and Tables for one model and places it in the `figures/` directory.
+Source `analyze_mcmc.R` to produce the summary results, Figures and Tables. To produce these for one model separately, lines 1-3 in this file should be replaced by `args <- x`, where `x` is a number from 1 to 3 (mean, min or max data) and `y` is a number from 1 to 4 (one of the model types). This produces summary results, Figures and Tables for one model and places it in the `figures/` directory.
 
-Alternatively, one can analyze all models simultaneously as a batch job on a computing cluster using the files `run_final_analyze.job` and the parameter combinations `parameters_analyze.txt` (specifying the model types), for each job.
+Alternatively, one can analyze all models simultaneously as a batch job on a computing cluster using the files `analyze_mcmc.job` and the parameter combinations `parameters_analyze.txt` (specifying the model types), for each job.
 
 ### References ###
 
